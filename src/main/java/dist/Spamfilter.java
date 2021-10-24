@@ -29,12 +29,10 @@ public class Spamfilter {
     private static File[]                   listOfHamtestFiles;
     private static File[]                   listOfSpamtestFiles;
 
-//    private static Map<String, Integer>     spamWords               = new HashMap<>();
-//    private static Map<String, Integer>     hamWords                = new HashMap<>();
     private static Map<String, Word>        Words                   = new HashMap<>();
     private static int                      spamMailsCount          = 0;
     private static int                      hamMailsCount           = 0;
-    private static float                    alpha                   = 0.5f;
+    private static float                    alpha                   = 0.1f;
 
     public static void main(String[] args) {
 
@@ -58,16 +56,35 @@ public class Spamfilter {
 
         /***********************************
          Calibration Process:
-
          ************************************/
 
-        System.out.println(calibrate(listOfSpamCalibrationFiles, Words, true));
-        System.out.println(calibrate(listOfHamCalibrationFiles, Words, false));
+        calibrate();
+
+        /************************************
+        Fazit: Ein guter Kalibrierungswert ist 0.1
+         ************************************/
+        System.out.println("Amount of wrong classified Ham Mails");
+        System.out.println(classifyScore(listOfHamtestFiles, Words, false, 0.55f));
+        System.out.println("Amount of wrong classified Spam Mails");
+        System.out.println(classifyScore(listOfSpamtestFiles, Words, true, 0.55f));
 
         System.out.println("The End");
     }
 
-    private static float calibrate(File[] folder, Map<String, Word> words, boolean b) {
+    private static float calibrate() {
+        score(listOfSpamCalibrationFiles, Words, true);
+        score(listOfHamCalibrationFiles, Words, false);
+        float thres = 0f;
+
+        for (int i = 50; i < 100; i++){
+            thres = (float) i / 100f;
+            System.out.println("thres: " + thres + " score: " + (classifyScore(listOfSpamCalibrationFiles, Words, true, thres) + classifyScore(listOfHamCalibrationFiles, Words, false, thres)));
+        }
+
+        return 0f;
+    }
+
+    private static float score(File[] folder, Map<String, Word> words, boolean b) {
         float abw = 0f;
         if (b){
             for (int i = 0; i < folder.length; i++) {
@@ -78,7 +95,26 @@ public class Spamfilter {
                 abw += Math.abs(0f - pOfSpam(folder[i], words));
             }
         }
+        return abw;
+    }
 
+    private static float classifyScore(File[] folder, Map<String, Word> words, boolean b, float thres) {
+        float abw = 0f;
+        if (b){
+            /*
+            In Case of Spam
+             */
+            for (int i = 0; i < folder.length; i++) {
+                if (pOfSpam(folder[i], words) < thres) abw++;
+            }
+        } else {
+            /*
+            In Case of Ham
+            */
+            for (int i = 0; i < folder.length; i++) {
+                if (pOfSpam(folder[i], words) > thres) abw++;
+            }
+        }
         return abw;
     }
 
@@ -102,7 +138,6 @@ public class Spamfilter {
             else if(element.getValue().getProbOfSpam() > 0.99f){
                 element.getValue().setProbOfSpam(0.99f);
             }
-//            element.getValue().setProbOfSpam(spamRate / (spamRate + hamRate));
         }
     }
 
@@ -123,23 +158,6 @@ public class Spamfilter {
         }
         return wOfSpam / uBruch;
     }
-
-//    public static float pOfHam(File f, Map<String, Word> map) {
-//        String s = readFromTextFile(f);
-//        BigDecimal wOfSpam = new BigDecimal(1);
-//        BigDecimal wOfHam = new BigDecimal(1);
-//        Set<String> set = split(s);
-//        for (String element : set) {
-//            if (map.get(element) != null) {
-//                wOfSpam     = wOfSpam.multiply(BigDecimal.valueOf(map.get(element).getcOfSpam()   / (float) spamMailsCount));
-//                wOfHam      = wOfHam.multiply(BigDecimal.valueOf(map.get(element).getcOfHam()     / (float) hamMailsCount));
-//            }
-//        }
-//        BigDecimal result = wOfHam.divide(wOfHam.add(wOfSpam));
-//        return result.floatValue();
-//    }
-
-
 
     public static void readAllFiles(){
         File folder = new File(HAM_MAILS_LEARNING);
@@ -209,7 +227,7 @@ public class Spamfilter {
 
     public static Set<String> split(String str){
         return Stream.of(str.split(" |\n"))
-            .filter(elem -> elem.length() < 10 && elem.length() > 3)
+//            .filter(elem -> elem.length() < 10 && elem.length() > 3)
             .map (elem -> new String(elem))
             .collect(Collectors.toSet());
     }
