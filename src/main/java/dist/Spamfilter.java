@@ -28,8 +28,9 @@ public class Spamfilter {
     private static File[]                   listOfHamtestFiles;
     private static File[]                   listOfSpamtestFiles;
 
-    private static Map<String, Integer>     spamWords               = new HashMap<>();
-    private static Map<String, Integer>     hamWords                = new HashMap<>();
+//    private static Map<String, Integer>     spamWords               = new HashMap<>();
+//    private static Map<String, Integer>     hamWords                = new HashMap<>();
+    private static Map<String, Word>        Words                   = new HashMap<>();
     private static int                      spamMailsCount          = 0;
     private static int                      hamMailsCount           = 0;
 
@@ -49,8 +50,14 @@ public class Spamfilter {
         analysed.
         ************************************/
 
-        spamMailsCount  = learnWordsFromAFolder(listOfSpamLearningFiles,   spamWords);
-        hamMailsCount   = learnWordsFromAFolder(listOfHamLearningFiles,    hamWords);
+        spamMailsCount  = learnSpamWordsFromAFolder(listOfSpamLearningFiles,   Words);
+        hamMailsCount   = learnHamWordsFromAFolder(listOfHamLearningFiles,    Words);
+
+        /***********************************
+         TODO: Explanation
+         ************************************/
+
+//        addMissingWordsInBothLists(spamWords, hamWords);
 
         System.out.println("The End");
         /*
@@ -89,7 +96,7 @@ public class Spamfilter {
         listOfSpamtestFiles = folder.listFiles();
     }
 
-    public static int learnWordsFromAFolder(File[] folder, Map<String, Integer> map){
+    public static int learnSpamWordsFromAFolder(File[] folder, Map<String, Word> map){
         int Count = 0;
         for (int i = 0; i < folder.length; i++) {
             if (folder[i].isFile()) {
@@ -98,9 +105,38 @@ public class Spamfilter {
                     Set<String> set = split(s);
                     for (String element : set) {
                         if (map.containsKey(element)) {
-                            map.put(element, map.get(element) + 1);
+                            Word w = map.get(element);
+                            w.incrementSpam();
+                            map.put(element, w);
                         } else {
-                            map.put(element, 1);
+                            Word w = new Word();
+                            w.setcOfSpam(1);
+                            map.put(element, w);
+                        }
+                    }
+                    Count++;
+                }
+            }
+        }
+        return Count;
+    }
+
+    public static int learnHamWordsFromAFolder(File[] folder, Map<String, Word> map){
+        int Count = 0;
+        for (int i = 0; i < folder.length; i++) {
+            if (folder[i].isFile()) {
+                String s = readFromTextFile(folder[i]);
+                if(s != null) {
+                    Set<String> set = split(s);
+                    for (String element : set) {
+                        if (map.containsKey(element)) {
+                            Word w = map.get(element);
+                            w.incrementHam();
+                            map.put(element, w);
+                        } else {
+                            Word w = new Word();
+                            w.setcOfHam(1);
+                            map.put(element, w);
                         }
                     }
                     Count++;
@@ -112,18 +148,17 @@ public class Spamfilter {
 
     public static Set<String> split(String str){
         return Stream.of(str.split(" |\n"))
-            .filter(elem -> elem.length() < 15)
+//            .filter(elem -> elem.length() < 15)
             .map (elem -> new String(elem))
             .collect(Collectors.toSet());
     }
 
     public static String readFromTextFile(File file){
         try {
-            return Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            return Files.readString(file.toPath(), StandardCharsets.ISO_8859_1);
         } catch (IOException e){
             e.printStackTrace();
         }
         return null;
     }
-
 }
