@@ -2,6 +2,7 @@ package dist;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -33,6 +34,7 @@ public class Spamfilter {
     private static Map<String, Word>        Words                   = new HashMap<>();
     private static int                      spamMailsCount          = 0;
     private static int                      hamMailsCount           = 0;
+    private static float                    alpha                   = 0.5f;
 
     public static void main(String[] args) {
 
@@ -50,31 +52,94 @@ public class Spamfilter {
         analysed.
         ************************************/
 
-        spamMailsCount  = learnSpamWordsFromAFolder(listOfSpamLearningFiles,   Words);
-        hamMailsCount   = learnHamWordsFromAFolder(listOfHamLearningFiles,    Words);
+        learnSpamWordsFromAFolder(listOfSpamLearningFiles,   Words);
+        learnHamWordsFromAFolder(listOfHamLearningFiles,    Words);
+        calculateAllProbabilities(Words);
 
         /***********************************
-         TODO: Explanation
+         Calibration Process:
+
          ************************************/
 
-//        addMissingWordsInBothLists(spamWords, hamWords);
+        System.out.println(calibrate(listOfSpamCalibrationFiles, Words, true));
+        System.out.println(calibrate(listOfHamCalibrationFiles, Words, false));
 
         System.out.println("The End");
-        /*
-        Test Space
-         */
-//        File testFile = new File(FILE_ROOT_PATH + HAM_MAILS_LEARNING + "0126.d002ec3f8a9aff31258bf03d62abdafa");
-//        String input = readFromTextFile(testFile);
-//        input = input.replaceAll("<[^>]*>|;", "");
-//        Set<String> output = split(input);
-//        System.out.println(output);
-
-//        System.out.println(spamMailsCount);
-//        System.out.println(hamMailsCount);
-//        System.out.println(spamWords);
-//        System.out.println(hamWords);
-
     }
+
+    private static float calibrate(File[] folder, Map<String, Word> words, boolean b) {
+        float abw = 0f;
+        if (b){
+            for (int i = 0; i < folder.length; i++) {
+                abw += Math.abs(1f - pOfSpam(folder[i], words));
+            }
+        } else {
+            for (int i = 0; i < folder.length; i++) {
+                abw += Math.abs(0f - pOfSpam(folder[i], words));
+            }
+        }
+
+        return abw;
+    }
+
+    public static void calculateAllProbabilities(Map<String, Word> map){
+        for (Map.Entry<String, Word> element : map.entrySet()) {
+            float spamRate  = element.getValue().getcOfSpam()   / (float) spamMailsCount;
+            float hamRate   = element.getValue().getcOfHam()    / (float) hamMailsCount;
+
+            if(spamRate == 0f) {
+                spamRate = alpha / (float) spamMailsCount;
+            }
+            if(hamRate == 0f) {
+                hamRate = alpha / (float) hamMailsCount;
+            }
+            if(spamRate + hamRate > 0){
+                element.getValue().setProbOfSpam(spamRate / (spamRate + hamRate));
+            }
+            if(element.getValue().getProbOfSpam() < 0.01f){
+                element.getValue().setProbOfSpam(0.01f);
+            }
+            else if(element.getValue().getProbOfSpam() > 0.99f){
+                element.getValue().setProbOfSpam(0.99f);
+            }
+//            element.getValue().setProbOfSpam(spamRate / (spamRate + hamRate));
+        }
+    }
+
+    public static float pOfSpam(File f, Map<String, Word> map) {
+        String s = readFromTextFile(f);
+        float wOfSpam   = 1f;
+        float wOfHam    = 1f;
+        Set<String> set = split(s);
+        for (String element : set) {
+            if (map.get(element) != null) {
+                wOfSpam     = wOfSpam   * map.get(element).getProbOfSpam();
+                wOfHam      = wOfHam    * (1.0f - map.get(element).getProbOfSpam());
+            }
+        }
+        float uBruch = wOfSpam + wOfHam;
+        if(uBruch == 0) {
+            return 0f;
+        }
+        return wOfSpam / uBruch;
+    }
+
+//    public static float pOfHam(File f, Map<String, Word> map) {
+//        String s = readFromTextFile(f);
+//        BigDecimal wOfSpam = new BigDecimal(1);
+//        BigDecimal wOfHam = new BigDecimal(1);
+//        Set<String> set = split(s);
+//        for (String element : set) {
+//            if (map.get(element) != null) {
+//                wOfSpam     = wOfSpam.multiply(BigDecimal.valueOf(map.get(element).getcOfSpam()   / (float) spamMailsCount));
+//                wOfHam      = wOfHam.multiply(BigDecimal.valueOf(map.get(element).getcOfHam()     / (float) hamMailsCount));
+//            }
+//        }
+//        BigDecimal result = wOfHam.divide(wOfHam.add(wOfSpam));
+//        return result.floatValue();
+//    }
+
+
 
     public static void readAllFiles(){
         File folder = new File(HAM_MAILS_LEARNING);
@@ -96,8 +161,8 @@ public class Spamfilter {
         listOfSpamtestFiles = folder.listFiles();
     }
 
-    public static int learnSpamWordsFromAFolder(File[] folder, Map<String, Word> map){
-        int Count = 0;
+    public static void learnSpamWordsFromAFolder(File[] folder, Map<String, Word> map){
+        spamMailsCount = folder.length;
         for (int i = 0; i < folder.length; i++) {
             if (folder[i].isFile()) {
                 String s = readFromTextFile(folder[i]);
@@ -114,15 +179,13 @@ public class Spamfilter {
                             map.put(element, w);
                         }
                     }
-                    Count++;
                 }
             }
         }
-        return Count;
     }
 
-    public static int learnHamWordsFromAFolder(File[] folder, Map<String, Word> map){
-        int Count = 0;
+    public static void learnHamWordsFromAFolder(File[] folder, Map<String, Word> map){
+        hamMailsCount = folder.length;
         for (int i = 0; i < folder.length; i++) {
             if (folder[i].isFile()) {
                 String s = readFromTextFile(folder[i]);
@@ -139,16 +202,14 @@ public class Spamfilter {
                             map.put(element, w);
                         }
                     }
-                    Count++;
                 }
             }
         }
-        return Count;
     }
 
     public static Set<String> split(String str){
         return Stream.of(str.split(" |\n"))
-//            .filter(elem -> elem.length() < 15)
+            .filter(elem -> elem.length() < 10 && elem.length() > 3)
             .map (elem -> new String(elem))
             .collect(Collectors.toSet());
     }

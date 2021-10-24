@@ -2,8 +2,9 @@ package dist;
 
 public class Word {
 
-    private int cOfHam  =    0;
-    private int cOfSpam =    0;
+    private float cOfHam        =    0f;
+    private float cOfSpam       =    0f;
+    private float probOfSpam    =    0f;
 
     public void incrementSpam() {
         this.cOfSpam++;
@@ -13,7 +14,7 @@ public class Word {
         this.cOfHam++;
     }
 
-    public int getcOfHam() {
+    public float getcOfHam() {
         return cOfHam;
     }
 
@@ -21,11 +22,27 @@ public class Word {
         this.cOfHam = cOfHam;
     }
 
-    public int getcOfSpam() {
+    public float getcOfSpam() {
         return cOfSpam;
     }
 
     public void setcOfSpam(int cOfSpam) {
         this.cOfSpam = cOfSpam;
+    }
+
+    public void setcOfHam(float cOfHam) {
+        this.cOfHam = cOfHam;
+    }
+
+    public void setcOfSpam(float cOfSpam) {
+        this.cOfSpam = cOfSpam;
+    }
+
+    public float getProbOfSpam() {
+        return probOfSpam;
+    }
+
+    public void setProbOfSpam(float probOfSpam) {
+        this.probOfSpam = probOfSpam;
     }
 }
