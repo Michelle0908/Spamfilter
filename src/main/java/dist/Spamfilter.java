@@ -36,11 +36,13 @@ public class Spamfilter {
 
     public static void main(String[] args) {
 
+        Spamfilter s = new Spamfilter();
+
         /***********************************
         Read All Files in the folders and store them in an Array of File Objects
         ************************************/
 
-        readAllFiles();
+        s.readAllFiles();
 
         /***********************************
         Learning Process:
@@ -50,33 +52,35 @@ public class Spamfilter {
         analysed.
         ************************************/
 
-        learnSpamWordsFromAFolder(listOfSpamLearningFiles,   Words);
-        learnHamWordsFromAFolder(listOfHamLearningFiles,    Words);
-        calculateAllProbabilities(Words);
+        s.learnSpamWordsFromAFolder(listOfSpamLearningFiles,   Words);
+        s.learnHamWordsFromAFolder(listOfHamLearningFiles,    Words);
+        s.calculateAllProbabilities(Words);
 
         /***********************************
          Calibration Process:
          ************************************/
 
-        calibrate();
+        s.calibrate();
 
         /************************************
         Fazit: Ein guter Kalibrierungswert ist 0.1
          ************************************/
         System.out.println("Amount of wrong classified Ham Mails");
-        System.out.println(classifyScore(listOfHamtestFiles, Words, false, 0.55f));
+        System.out.println(s.classifyScore(listOfHamtestFiles, Words, false, 0.80f));
         System.out.println("Amount of wrong classified Spam Mails");
-        System.out.println(classifyScore(listOfSpamtestFiles, Words, true, 0.55f));
+        System.out.println(s.classifyScore(listOfSpamtestFiles, Words, true, 0.80f));
 
         System.out.println("The End");
     }
 
-    private static float calibrate() {
+    public Spamfilter(){}
+
+    private float calibrate() {
         score(listOfSpamCalibrationFiles, Words, true);
         score(listOfHamCalibrationFiles, Words, false);
         float thres = 0f;
 
-        for (int i = 50; i < 100; i++){
+        for (int i = 1; i < 100; i++){
             thres = (float) i / 100f;
             System.out.println("thres: " + thres + " score: " + (classifyScore(listOfSpamCalibrationFiles, Words, true, thres) + classifyScore(listOfHamCalibrationFiles, Words, false, thres)));
         }
@@ -84,7 +88,7 @@ public class Spamfilter {
         return 0f;
     }
 
-    private static float score(File[] folder, Map<String, Word> words, boolean b) {
+    private float score(File[] folder, Map<String, Word> words, boolean b) {
         float abw = 0f;
         if (b){
             for (int i = 0; i < folder.length; i++) {
@@ -98,7 +102,7 @@ public class Spamfilter {
         return abw;
     }
 
-    private static float classifyScore(File[] folder, Map<String, Word> words, boolean b, float thres) {
+    private float classifyScore(File[] folder, Map<String, Word> words, boolean b, float thres) {
         float abw = 0f;
         if (b){
             /*
@@ -118,7 +122,7 @@ public class Spamfilter {
         return abw;
     }
 
-    public static void calculateAllProbabilities(Map<String, Word> map){
+    public void calculateAllProbabilities(Map<String, Word> map){
         for (Map.Entry<String, Word> element : map.entrySet()) {
             float spamRate  = element.getValue().getcOfSpam()   / (float) spamMailsCount;
             float hamRate   = element.getValue().getcOfHam()    / (float) hamMailsCount;
@@ -141,7 +145,7 @@ public class Spamfilter {
         }
     }
 
-    public static float pOfSpam(File f, Map<String, Word> map) {
+    public float pOfSpam(File f, Map<String, Word> map) {
         String s = readFromTextFile(f);
         float wOfSpam   = 1f;
         float wOfHam    = 1f;
@@ -159,7 +163,7 @@ public class Spamfilter {
         return wOfSpam / uBruch;
     }
 
-    public static void readAllFiles(){
+    public void readAllFiles(){
         File folder = new File(HAM_MAILS_LEARNING);
         listOfHamLearningFiles = folder.listFiles();
 
@@ -179,7 +183,7 @@ public class Spamfilter {
         listOfSpamtestFiles = folder.listFiles();
     }
 
-    public static void learnSpamWordsFromAFolder(File[] folder, Map<String, Word> map){
+    public void learnSpamWordsFromAFolder(File[] folder, Map<String, Word> map){
         spamMailsCount = folder.length;
         for (int i = 0; i < folder.length; i++) {
             if (folder[i].isFile()) {
@@ -202,7 +206,7 @@ public class Spamfilter {
         }
     }
 
-    public static void learnHamWordsFromAFolder(File[] folder, Map<String, Word> map){
+    public void learnHamWordsFromAFolder(File[] folder, Map<String, Word> map){
         hamMailsCount = folder.length;
         for (int i = 0; i < folder.length; i++) {
             if (folder[i].isFile()) {
@@ -225,14 +229,14 @@ public class Spamfilter {
         }
     }
 
-    public static Set<String> split(String str){
+    public Set<String> split(String str){
         return Stream.of(str.split(" |\n"))
 //            .filter(elem -> elem.length() < 10 && elem.length() > 3)
             .map (elem -> new String(elem))
             .collect(Collectors.toSet());
     }
 
-    public static String readFromTextFile(File file){
+    public String readFromTextFile(File file){
         try {
             return Files.readString(file.toPath(), StandardCharsets.ISO_8859_1);
         } catch (IOException e){
