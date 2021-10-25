@@ -32,7 +32,7 @@ public class Spamfilter {
     private static Map<String, Word>        Words                   = new HashMap<>();
     private static int                      spamMailsCount          = 0;
     private static int                      hamMailsCount           = 0;
-    private static float                    alpha                   = 0.1f;
+    private static float                    alpha                   = 0.4f;
 
     public static void main(String[] args) {
 
@@ -69,6 +69,7 @@ public class Spamfilter {
         System.out.println(s.classifyScore(listOfHamtestFiles, Words, false, 0.80f));
         System.out.println("Amount of wrong classified Spam Mails");
         System.out.println(s.classifyScore(listOfSpamtestFiles, Words, true, 0.80f));
+        System.out.println("out of " + (listOfHamtestFiles.length + listOfSpamtestFiles.length) + " Mails");
 
         System.out.println("The End");
     }
@@ -84,7 +85,7 @@ public class Spamfilter {
             thres = (float) i / 100f;
             System.out.println("thres: " + thres + " score: " + (classifyScore(listOfSpamCalibrationFiles, Words, true, thres) + classifyScore(listOfHamCalibrationFiles, Words, false, thres)));
         }
-
+        System.out.println("of " + (listOfSpamCalibrationFiles.length + listOfHamCalibrationFiles.length) + " Mails");
         return 0f;
     }
 
